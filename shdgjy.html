@@ -1,0 +1,1030 @@
+<!DOCTYPE html>
+<!-- shdgjy v0.5.0 进出场身份验证 · 单文件离线应用，数据加密内嵌于本文件 -->
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="color-scheme" content="light">
+<title>进出场身份验证</title>
+<style>
+*{box-sizing:border-box;margin:0;padding:0}
+html{-webkit-text-size-adjust:100%}
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","PingFang SC","Hiragino Sans GB","Microsoft YaHei",sans-serif;background:#f6f1ea;color:#33302b;min-height:100vh;display:flex;flex-direction:column}
+main{flex:1;width:100%;max-width:1020px;margin:0 auto;padding:24px 16px}
+footer{text-align:center;color:#b3a893;font-size:12px;padding:10px 0 18px}
+.hidden{display:none!important}
+.muted{color:#8a8378;font-size:13px}
+
+/* 卡片 */
+.card{background:#fffdf9;border:1px solid #e8e0d4;border-radius:12px;box-shadow:0 2px 10px rgba(90,70,40,.06)}
+
+/* 登录视图 */
+.login-card{max-width:340px;margin:9vh auto 0;padding:28px 24px}
+.login-card h1{font-size:20px;text-align:center;margin-bottom:22px;letter-spacing:1px}
+.field{display:block;margin-bottom:14px}
+.field>label{display:block;font-size:13px;color:#8a8378;margin-bottom:6px}
+.field input{width:100%;height:42px;border:1px solid #ddd2c0;border-radius:8px;padding:0 12px;font-size:16px;background:#fff}
+.field input:focus{outline:none;border-color:#b3653f}
+.input-wrap{position:relative;display:block}
+.input-wrap input{padding-right:38px}
+.clear-btn{position:absolute;right:7px;top:50%;transform:translateY(-50%);border:none;background:#e8e0d4;color:#8a8378;width:22px;height:22px;border-radius:50%;font-size:14px;line-height:1;cursor:pointer;display:none;align-items:center;justify-content:center;padding:0 0 1px}
+.clear-btn.show{display:flex}
+.clear-btn:hover{background:#ddd2c0;color:#4a4238}
+.err{color:#b03a2e;font-size:13px;min-height:18px;margin-bottom:8px}
+#btn-login{width:100%}
+
+/* 按钮 */
+.btn{display:inline-block;height:40px;padding:0 18px;border:none;border-radius:8px;background:#b3653f;color:#fff;font-size:15px;cursor:pointer}
+.btn:hover{background:#a25733}
+.btn:disabled{opacity:.6;cursor:default}
+.btn.subtle{background:#efe7d9;color:#6b5d4a}
+.btn.subtle:hover{background:#e6dbc8}
+.btn.sm{height:32px;padding:0 12px;font-size:13px}
+
+/* 普通用户视图：核验结果页 */
+.user-card{max-width:420px;margin:8vh auto 0;padding:26px 24px;text-align:left}
+.pass-title{font-size:23px;font-weight:700;color:#3a7d44;margin-bottom:16px;letter-spacing:.5px}
+.info-lead{color:#8a8378;font-size:13.5px;margin-bottom:2px}
+.info-line{font-size:21px;font-weight:600;letter-spacing:.5px;padding:12px 0;border-bottom:1px dashed #e8e0d4}
+.info-line:last-of-type{border-bottom:none;padding-bottom:16px}
+.info-line .k{font-weight:400;color:#4a4238}
+.user-card .btn{display:block;margin:6px auto 0}
+
+/* 管理员视图 */
+.admin-head{display:flex;justify-content:space-between;align-items:center;gap:12px;margin-bottom:14px;flex-wrap:wrap}
+.admin-head h2{font-size:19px}
+.head-right{display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.toolbar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:14px}
+#search-box{flex:1;min-width:180px;height:40px;border:1px solid #ddd2c0;border-radius:8px;padding:0 12px;font-size:15px;background:#fffdf9}
+#search-box:focus{outline:none;border-color:#b3653f}
+.table-wrap{background:#fffdf9;border:1px solid #e8e0d4;border-radius:12px;overflow-x:auto}
+table{width:100%;border-collapse:collapse;min-width:560px}
+th{font-size:13px;color:#8a8378;text-align:left;padding:10px 14px;background:#f3ece1;border-bottom:1px solid #e8e0d4;white-space:nowrap}
+td{padding:10px 14px;border-bottom:1px solid #f0e9dd;font-size:14.5px}
+tr:last-child td{border-bottom:none}
+tbody tr:hover{background:#faf6ee}
+th.op,td.op{text-align:right;white-space:nowrap}
+.row-btn{border:none;background:none;color:#b3653f;font-size:13px;cursor:pointer;padding:4px 6px;border-radius:6px}
+.row-btn:hover{background:#f3ece1}
+.row-btn.del{color:#b03a2e}
+.empty{padding:34px 0;text-align:center}
+.count{font-size:12.5px;margin-top:8px}
+#save-bar{position:fixed;left:0;right:0;bottom:0;background:#4a4238;color:#f6f1ea;display:none;align-items:center;justify-content:center;gap:18px;padding:10px 16px;z-index:60}
+#save-bar.show{display:flex}
+#save-bar span{font-size:14px}
+#save-bar .btn{height:36px}
+
+/* 弹窗 */
+.modal{position:fixed;inset:0;background:rgba(58,48,36,.45);display:none;align-items:center;justify-content:center;z-index:70;padding:16px}
+.modal.open{display:flex}
+.modal-box{background:#fffdf9;border-radius:12px;max-width:440px;width:100%;max-height:86vh;overflow:auto;padding:20px 18px}
+.modal-box h3{font-size:17px;margin-bottom:16px}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px}
+#imp-text{width:100%;height:150px;border:1px solid #ddd2c0;border-radius:8px;padding:10px;font-size:14px;resize:vertical;font-family:inherit;background:#fff}
+#imp-text:focus{outline:none;border-color:#b3653f}
+.checkline{display:flex;align-items:center;gap:8px;margin:12px 0 4px;font-size:14px}
+.checkline input{width:16px;height:16px;accent-color:#b3653f}
+.pwd-note{font-size:12.5px;color:#8a8378;margin-top:6px}
+#modal-export .steps{font-size:14px;line-height:1.9;margin:10px 0 4px;color:#4a4238}
+#modal-export .steps b{color:#b3653f}
+#imp-preview{display:block;margin-top:8px;min-height:16px}
+#imp-result{display:block;margin-top:8px;min-height:16px}
+
+/* 轻提示 */
+.toast{position:fixed;top:18px;left:50%;transform:translateX(-50%) translateY(-90px);background:#4a4238;color:#fff;padding:10px 20px;border-radius:8px;font-size:14px;transition:transform .25s;z-index:90;max-width:86vw}
+.toast.show{transform:translateX(-50%) translateY(0)}
+</style>
+</head>
+<body>
+<main>
+
+  <!-- 登录视图：所有人首次进入所见 -->
+  <section id="view-login" class="view">
+    <div class="card login-card">
+      <h1>进出场身份验证</h1>
+      <form id="login-form" autocomplete="off">
+        <div class="field">
+          <label for="li-user">用户名</label>
+          <span class="input-wrap">
+            <input id="li-user" type="text" maxlength="32" autocomplete="off">
+            <button type="button" id="clear-user" class="clear-btn" aria-label="清空用户名">×</button>
+          </span>
+        </div>
+        <div class="field">
+          <label for="li-pass">密码</label>
+          <input id="li-pass" type="password" maxlength="64" autocomplete="off">
+        </div>
+        <div id="login-err" class="err"></div>
+        <button id="btn-login" class="btn" type="submit">登 录</button>
+      </form>
+    </div>
+  </section>
+
+  <!-- 普通用户视图：核验结果页 -->
+  <section id="view-user" class="view hidden">
+    <div class="card user-card">
+      <div class="pass-title">核验已通过✅</div>
+      <div class="info-lead">用户身份信息如下：</div>
+      <div class="info-line"><span class="k">姓名：</span><span id="u-name"></span></div>
+      <div class="info-line"><span class="k">车牌号：</span><span id="u-plate"></span></div>
+      <button id="btn-logout-u" class="btn subtle">退出登录</button>
+    </div>
+  </section>
+
+  <!-- 管理员视图：用户管理 -->
+  <section id="view-admin" class="view hidden">
+    <div class="admin-head">
+      <h2>用户管理</h2>
+      <div class="head-right">
+        <span id="data-time" class="muted"></span>
+        <button id="btn-logout-a" class="btn subtle sm">退出登录</button>
+      </div>
+    </div>
+    <div id="sync-note" class="muted hidden" style="margin:-6px 0 10px"></div>
+    <div class="toolbar">
+      <input id="search-box" type="search" placeholder="搜索用户名 / 姓名 / 车牌号">
+      <button id="btn-add" class="btn">添加用户</button>
+      <button id="btn-import" class="btn subtle">批量导入</button>
+      <button id="btn-csv" class="btn subtle">导出CSV</button>
+      <button id="btn-set" class="btn subtle">密码设置</button>
+    </div>
+    <div class="table-wrap">
+      <table>
+        <thead><tr><th>用户名</th><th>姓名</th><th>车牌号</th><th class="op">操作</th></tr></thead>
+        <tbody id="tbody"></tbody>
+      </table>
+      <div id="empty-tip" class="muted empty hidden">暂无用户</div>
+    </div>
+    <div id="row-count" class="muted count"></div>
+    <div id="save-bar"><span>有未保存更改</span><button id="btn-save" class="btn">保存并生成文件</button></div>
+  </section>
+
+</main>
+<footer>shdgjy v0.5.0</footer>
+
+<!-- 添加 / 编辑用户 -->
+<div id="modal-edit" class="modal">
+  <div class="modal-box">
+    <h3 id="edit-title">添加用户</h3>
+    <label class="field"><span>用户名</span><input id="f-user" type="text" maxlength="32"></label>
+    <label class="field"><span>姓名</span><input id="f-name" type="text" maxlength="32"></label>
+    <label class="field"><span>车牌号</span><input id="f-plate" type="text" maxlength="16"></label>
+    <div id="edit-err" class="err"></div>
+    <div class="modal-actions">
+      <button class="btn subtle" data-close>取消</button>
+      <button id="btn-edit-ok" class="btn">保存</button>
+    </div>
+  </div>
+</div>
+
+<!-- 批量导入 -->
+<div id="modal-import" class="modal">
+  <div class="modal-box">
+    <h3>批量导入</h3>
+    <textarea id="imp-text" placeholder="每行一条：用户名,姓名,车牌号&#10;zhangsan,张三,沪A12345&#10;lisi,李四,沪B67890&#10;（可从 Excel 直接复制，制表符分隔同样有效）"></textarea>
+    <label class="checkline"><input type="checkbox" id="imp-replace">导入前清空现有用户</label>
+    <span id="imp-preview" class="muted"></span>
+    <span id="imp-result" class="muted"></span>
+    <div class="modal-actions">
+      <button class="btn subtle" data-close>取消</button>
+      <button id="btn-imp-ok" class="btn">确认导入</button>
+    </div>
+  </div>
+</div>
+
+<!-- 密码设置 -->
+<div id="modal-settings" class="modal">
+  <div class="modal-box">
+    <h3>密码设置</h3>
+    <label class="field"><span>统一密码（所有普通用户共用）</span><input id="set-unified" type="text" maxlength="64"></label>
+    <div class="pwd-note">修改后，所有普通用户须用新密码登录；长度至少 6 位。</div>
+    <label class="field"><span>新管理员密码</span><input id="set-admin-pass" type="password" maxlength="64" autocomplete="new-password"></label>
+    <label class="field"><span>确认新管理员密码</span><input id="set-admin-pass2" type="password" maxlength="64" autocomplete="new-password"></label>
+    <div class="pwd-note">留空表示不修改管理员密码。</div>
+    <div id="set-err" class="err"></div>
+    <div class="modal-actions">
+      <button class="btn subtle" data-close>取消</button>
+      <button id="btn-set-ok" class="btn">保存设置</button>
+    </div>
+  </div>
+</div>
+
+<!-- 保存并生成文件 -->
+<div id="modal-export" class="modal">
+  <div class="modal-box">
+    <h3>保存并生成文件</h3>
+    <p id="exp-info" class="muted">数据更新时间：</p>
+    <div class="steps">
+      1. 点击下方按钮，下载新的 <b>shdgjy.html</b><br>
+      2. 在宝塔面板「文件」中，将下载的文件上传覆盖 <b>/www/server/nginx/html/shdgjy.html</b><br>
+      3. 上传完成后刷新页面即生效（覆盖前线上仍是旧数据）
+    </div>
+    <div class="modal-actions">
+      <button class="btn subtle" data-close>完成</button>
+      <button id="btn-download" class="btn">下载文件</button>
+    </div>
+  </div>
+</div>
+
+<!-- 通用确认 -->
+<div id="modal-confirm" class="modal">
+  <div class="modal-box">
+    <h3>确认</h3>
+    <p id="confirm-msg" style="font-size:14.5px;line-height:1.7"></p>
+    <div class="modal-actions">
+      <button class="btn subtle" data-close>取消</button>
+      <button id="btn-confirm-ok" class="btn">确认</button>
+    </div>
+  </div>
+</div>
+
+<div id="toast" class="toast"></div>
+
+<script type="application/json" id="app-data">{"fmt":"H1","it":100000,"sA":"55cee2d8d4ae04fc41057cbcecab59d1","sU":"b94911206e9dee91be8d3271121656bb","sW":"769b1f290e3b786d4b6b41baa16cf76c","aV":"6f0e95491fa1a1be79dd40426e1d336b84f57d68d4bda4ba9f81c265854dbafd","uV":"bd6d966a9c37d3dd709998f798e9c36a5915dcabbae512b8bec78a76481fa6ce","e1":"PKTYVVdSiVb04CAsq30zIsOk4Eh5dBsnp9HSaeT4Sc4pK0nYnqhWOt4UEVWH0GENJkzIFkjjPhaXh1l2VVkzvqFVNwjNIH8eGiPepnQ7WNY04u1Xalbk03mrVueWxRLnYo4OqWsJFyojAYql3Z30RmmVW5a5gLrvplRotMXCLg==","e2":"UUS9wMAF19MdQ/kkkYniLBlF/XOLQy1cFnvbRoaZ+Vh99hHkL6LyDUJ4ncTVrSzsEPGwJqgBKwtAVA6Niz7S8TJg92ip+WdzHPRGb8N0mmkuSa8/d5I+820S9aqUfgS+D/u66o0fdVfUBIWh/hSopc0KzFMgKe5TvrdRZ9nsFQ=="}</script>
+<script>
+(function(){
+'use strict';
+
+/* ============================================================
+ * 加密模块（纯 JS，兼容 http 明文环境——WebCrypto subtle 在非
+ * 安全上下文不可用）。实现：SHA-256 / HMAC-SHA256 / PBKDF2 /
+ * AES-256-CTR，加密结构为 CTR 加密 + HMAC 校验（encrypt-then-MAC）。
+ * ============================================================ */
+/*CRYPTO-START*/
+// ---------- 字节与编码工具 ----------
+function utf8Bytes(str){ return new TextEncoder().encode(str); }
+function bytesToHex(b){ var s=''; for(var i=0;i<b.length;i++) s+=(b[i]<16?'0':'')+b[i].toString(16); return s; }
+function hexToBytes(h){ var b=new Uint8Array(h.length>>1); for(var i=0;i<b.length;i++) b[i]=parseInt(h.substr(i*2,2),16); return b; }
+function bytesToB64(b){ var s=''; for(var i=0;i<b.length;i++) s+=String.fromCharCode(b[i]); return btoa(s); }
+function b64ToBytes(s){ var bin=atob(s); var b=new Uint8Array(bin.length); for(var i=0;i<bin.length;i++) b[i]=bin.charCodeAt(i); return b; }
+function joinBytes(){ var n=0,i; for(i=0;i<arguments.length;i++) n+=arguments[i].length; var out=new Uint8Array(n),o=0; for(i=0;i<arguments.length;i++){ out.set(arguments[i],o); o+=arguments[i].length; } return out; }
+function randBytes(n){
+  var b=new Uint8Array(n);
+  if(typeof crypto!=='undefined'&&crypto.getRandomValues){ crypto.getRandomValues(b); }
+  else{ for(var i=0;i<n;i++) b[i]=(Math.random()*256)|0; }
+  return b;
+}
+
+// ---------- SHA-256 ----------
+var SHA256_K = new Uint32Array([
+  0x428a2f98,0x71374491,0xb5c0fbcf,0xe9b5dba5,0x3956c25b,0x59f111f1,0x923f82a4,0xab1c5ed5,
+  0xd807aa98,0x12835b01,0x243185be,0x550c7dc3,0x72be5d74,0x80deb1fe,0x9bdc06a7,0xc19bf174,
+  0xe49b69c1,0xefbe4786,0x0fc19dc6,0x240ca1cc,0x2de92c6f,0x4a7484aa,0x5cb0a9dc,0x76f988da,
+  0x983e5152,0xa831c66d,0xb00327c8,0xbf597fc7,0xc6e00bf3,0xd5a79147,0x06ca6351,0x14292967,
+  0x27b70a85,0x2e1b2138,0x4d2c6dfc,0x53380d13,0x650a7354,0x766a0abb,0x81c2c92e,0x92722c85,
+  0xa2bfe8a1,0xa81a664b,0xc24b8b70,0xc76c51a3,0xd192e819,0xd6990624,0xf40e3585,0x106aa070,
+  0x19a4c116,0x1e376c08,0x2748774c,0x34b0bcb5,0x391c0cb3,0x4ed8aa4a,0x5b9cca4f,0x682e6ff3,
+  0x748f82ee,0x78a5636f,0x84c87814,0x8cc70208,0x90befffa,0xa4506ceb,0xbef9a3f7,0xc67178f2
+]);
+function sha256IV(){ return new Uint32Array([0x6a09e667,0xbb67ae85,0x3c6ef372,0xa54ff53a,0x510e527f,0x9b05688c,0x1f83d9ab,0x5be0cd19]); }
+// 压缩 data（长度须为 64 的倍数），状态 h 原地更新
+function sha256Blocks(dv, byteLen, h){
+  var w=new Uint32Array(64), i, off;
+  for(off=0; off<byteLen; off+=64){
+    for(i=0;i<16;i++) w[i]=dv.getUint32(off+(i<<2));
+    for(i=16;i<64;i++){
+      var x=w[i-15], y=w[i-2];
+      var s0=((x>>>7)|(x<<25))^((x>>>18)|(x<<14))^(x>>>3);
+      var s1=((y>>>17)|(y<<15))^((y>>>19)|(y<<13))^(y>>>10);
+      w[i]=(w[i-16]+s0+w[i-7]+s1)>>>0;
+    }
+    var a=h[0],b=h[1],c=h[2],d=h[3],e=h[4],f=h[5],g=h[6],k=h[7];
+    for(i=0;i<64;i++){
+      var S1=((e>>>6)|(e<<26))^((e>>>11)|(e<<21))^((e>>>25)|(e<<7));
+      var ch=(e&f)^(~e&g);
+      var t1=(k+S1+ch+SHA256_K[i]+w[i])>>>0;
+      var S0=((a>>>2)|(a<<30))^((a>>>13)|(a<<19))^((a>>>22)|(a<<10));
+      var mj=(a&b)^(a&c)^(b&c);
+      var t2=(S0+mj)>>>0;
+      k=g; g=f; f=e; e=(d+t1)>>>0; d=c; c=b; b=a; a=(t1+t2)>>>0;
+    }
+    h[0]=(h[0]+a)>>>0; h[1]=(h[1]+b)>>>0; h[2]=(h[2]+c)>>>0; h[3]=(h[3]+d)>>>0;
+    h[4]=(h[4]+e)>>>0; h[5]=(h[5]+f)>>>0; h[6]=(h[6]+g)>>>0; h[7]=(h[7]+k)>>>0;
+  }
+}
+function stateBytes(h){
+  var out=new Uint8Array(32), odv=new DataView(out.buffer), i;
+  for(i=0;i<8;i++) odv.setUint32(i<<2, h[i]);
+  return out;
+}
+function compressInto(h, bytes){
+  var dv=new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  sha256Blocks(dv, bytes.length, h);
+}
+function sha256(msg){
+  var paddedLen=((msg.length+9+63)>>6)<<6;
+  var buf=new Uint8Array(paddedLen);
+  buf.set(msg); buf[msg.length]=0x80;
+  var dv=new DataView(buf.buffer);
+  dv.setUint32(paddedLen-8, Math.floor(msg.length/0x20000000));
+  dv.setUint32(paddedLen-4, (msg.length*8)>>>0);
+  var h=sha256IV();
+  sha256Blocks(dv, paddedLen, h);
+  return stateBytes(h);
+}
+// 在已有状态上续算：状态已吃掉 prefixLen 字节，suffix 是后续消息
+function sha256Continue(h0, prefixLen, suffix){
+  var total=prefixLen+suffix.length;
+  var paddedLen=((total+9+63)>>6)<<6;
+  var buf=new Uint8Array(paddedLen-prefixLen);
+  buf.set(suffix,0); buf[suffix.length]=0x80;
+  var dv=new DataView(buf.buffer);
+  dv.setUint32(buf.length-8, Math.floor(total/0x20000000));
+  dv.setUint32(buf.length-4, (total*8)>>>0);
+  var h=new Uint32Array(h0);
+  sha256Blocks(dv, buf.length, h);
+  return stateBytes(h);
+}
+
+// ---------- HMAC-SHA256（预置 ipad/opad 状态，PBKDF2 高频调用时省一半压缩量） ----------
+function hmacKeySetup(key){
+  var k=key.length>64?sha256(key):key;
+  var kb=new Uint8Array(64); kb.set(k);
+  var ipad=new Uint8Array(64), opad=new Uint8Array(64), i;
+  for(i=0;i<64;i++){ ipad[i]=kb[i]^0x36; opad[i]=kb[i]^0x5c; }
+  var hip=sha256IV(); compressInto(hip, ipad);
+  var hop=sha256IV(); compressInto(hop, opad);
+  return {hip:hip, hop:hop};
+}
+function hmacDigest(st, msg){
+  var inner=sha256Continue(st.hip, 64, msg);
+  return sha256Continue(st.hop, 64, inner);
+}
+function hmacSha256(key, msg){ return hmacDigest(hmacKeySetup(key), msg); }
+
+// ---------- PBKDF2-HMAC-SHA256（dkLen=32，单块输出） ----------
+function pbkdf2Sha256(password, salt, iterations){
+  var st=hmacKeySetup(password);
+  var saltInt=new Uint8Array(salt.length+4);
+  saltInt.set(salt);
+  saltInt[salt.length]=0; saltInt[salt.length+1]=0; saltInt[salt.length+2]=0; saltInt[salt.length+3]=1;
+  var u=hmacDigest(st, saltInt);
+  var t=new Uint8Array(u);
+  for(var i=1;i<iterations;i++){
+    u=hmacDigest(st, u);
+    for(var j=0;j<32;j++) t[j]^=u[j];
+  }
+  return t;
+}
+
+// ---------- AES-256 ----------
+var AES_SBOX=new Uint8Array(256);
+(function initSbox(){
+  // GF(2^8)（多项式 0x11b）以 3 为生成元的 exp/log 表 → 求逆 → 仿射变换
+  function xtime(x){ return ((x<<1)^((x&0x80)?0x1b:0))&0xff; }
+  function rotl8(x,n){ return ((x<<n)|(x>>>(8-n)))&0xff; }
+  var exp=new Uint8Array(255), log=new Uint8Array(256), v=1, i;
+  for(i=0;i<255;i++){ exp[i]=v; log[v]=i; v=(v^xtime(v))&0xff; }
+  var inv=new Uint8Array(256);
+  inv[0]=0;
+  for(i=1;i<256;i++) inv[i]=exp[(255-log[i])%255];
+  for(i=0;i<256;i++){
+    var b=inv[i];
+    AES_SBOX[i]=(b^rotl8(b,1)^rotl8(b,2)^rotl8(b,3)^rotl8(b,4)^0x63)&0xff;
+  }
+})();
+function subWord(x){
+  return ((AES_SBOX[(x>>>24)&0xff]<<24)|(AES_SBOX[(x>>>16)&0xff]<<16)|(AES_SBOX[(x>>>8)&0xff]<<8)|AES_SBOX[x&0xff])>>>0;
+}
+function aesExpandKey(key){ // 32 字节密钥 → 60 个轮密钥字
+  var w=new Uint32Array(60);
+  var dv=new DataView(key.buffer, key.byteOffset, key.byteLength);
+  var i;
+  for(i=0;i<8;i++) w[i]=dv.getUint32(i<<2);
+  var rc=1;
+  for(i=8;i<60;i++){
+    var t=w[i-1];
+    if(i%8===0){
+      t=(((t<<8)|(t>>>24))>>>0); // RotWord
+      t=subWord(t);
+      t=(t^(rc<<24))>>>0;        // Rcon
+      rc=((rc<<1)^((rc&0x80)?0x1b:0))&0xff;
+    }else if(i%8===4){
+      t=subWord(t);
+    }
+    w[i]=(w[i-8]^t)>>>0;
+  }
+  return w;
+}
+function addRoundKeyBytes(s, w, round){
+  for(var c=0;c<4;c++){
+    var kw=w[round*4+c];
+    s[c*4+0]^=(kw>>>24)&0xff; s[c*4+1]^=(kw>>>16)&0xff;
+    s[c*4+2]^=(kw>>>8)&0xff;  s[c*4+3]^=kw&0xff;
+  }
+}
+function shiftRows(s){
+  var t=new Uint8Array(16); t.set(s);
+  for(var r=1;r<4;r++) for(var c=0;c<4;c++) s[c*4+r]=t[((c+r)%4)*4+r];
+}
+function mixColumns(s){
+  function xt(x){ return ((x<<1)^((x&0x80)?0x1b:0))&0xff; }
+  for(var c=0;c<4;c++){
+    var a0=s[c*4],a1=s[c*4+1],a2=s[c*4+2],a3=s[c*4+3];
+    s[c*4]  =xt(a0)^xt(a1)^a1^a2^a3;
+    s[c*4+1]=a0^xt(a1)^xt(a2)^a2^a3;
+    s[c*4+2]=a0^a1^xt(a2)^xt(a3)^a3;
+    s[c*4+3]=xt(a0)^a0^a1^a2^xt(a3);
+  }
+}
+function aesEncryptBlock(w, input, output){ // 16 字节 → 16 字节
+  var s=new Uint8Array(16); s.set(input);
+  var i, r;
+  addRoundKeyBytes(s, w, 0);
+  for(r=1;r<14;r++){
+    for(i=0;i<16;i++) s[i]=AES_SBOX[s[i]];
+    shiftRows(s); mixColumns(s); addRoundKeyBytes(s, w, r);
+  }
+  for(i=0;i<16;i++) s[i]=AES_SBOX[s[i]];
+  shiftRows(s); addRoundKeyBytes(s, w, 14);
+  output.set(s);
+}
+function aesCtr(key, ctr, data){ // CTR 模式，ctr 为 16 字节初始计数块（128 位大端自增）
+  var w=aesExpandKey(key);
+  var out=new Uint8Array(data.length);
+  var ks=new Uint8Array(16), cb=new Uint8Array(16);
+  cb.set(ctr);
+  for(var off=0; off<data.length; off+=16){
+    aesEncryptBlock(w, cb, ks);
+    var n=Math.min(16, data.length-off), i;
+    for(i=0;i<n;i++) out[off+i]=data[off+i]^ks[i];
+    for(i=15;i>=0;i--){ cb[i]=(cb[i]+1)&0xff; if(cb[i]!==0) break; }
+  }
+  return out;
+}
+
+// ---------- 口令派生与加密包 ----------
+// 包格式：base64( 16B 随机计数块 ‖ 密文 ‖ 32B HMAC-SHA256(Kmac, ctr‖ct) )
+function encPayload(key, text){
+  var kEnc=sha256(joinBytes(key, utf8Bytes('enc')));
+  var kMac=sha256(joinBytes(key, utf8Bytes('mac')));
+  var ctr=randBytes(16);
+  var ct=aesCtr(kEnc, ctr, utf8Bytes(text));
+  var mac=hmacSha256(kMac, joinBytes(ctr, ct));
+  return bytesToB64(joinBytes(ctr, ct, mac));
+}
+function decPayload(key, b64){
+  var kEnc=sha256(joinBytes(key, utf8Bytes('enc')));
+  var kMac=sha256(joinBytes(key, utf8Bytes('mac')));
+  var blob=b64ToBytes(b64);
+  if(blob.length<16+32) throw new Error('bad package');
+  var ctr=blob.subarray(0,16);
+  var ct=blob.subarray(16, blob.length-32);
+  var mac=blob.subarray(blob.length-32);
+  var expect=hmacSha256(kMac, joinBytes(ctr, ct));
+  var diff=0;
+  for(var i=0;i<32;i++) diff|=expect[i]^mac[i];
+  if(diff!==0) throw new Error('MAC mismatch');
+  return new TextDecoder().decode(aesCtr(kEnc, ctr, ct));
+}
+function deriveKey(pwd, saltHex, iterations){
+  return pbkdf2Sha256(utf8Bytes(pwd), hexToBytes(saltHex), iterations);
+}
+function keyVer(key){ return bytesToHex(sha256(key)); } // 口令派生密钥的校验值（存于 app-data）
+/*CRYPTO-END*/
+
+/* ============================================================
+ * 应用逻辑
+ * ============================================================ */
+var APP_VERSION='0.5.0';
+var ADMIN_USER='user';
+var IT=100000;      // PBKDF2 迭代次数（与 app-data 中 it 字段一致）
+var IDLE_MS=10*60*1000; // 管理员空闲自动退出
+
+var auth=null;      // 页面内嵌的 app-data（口令校验值 + 密文）
+var session=null;   // {role:'admin'|'user'}
+var state=null;     // 管理员工作副本
+var editingKey=null;// 正在编辑的用户原始用户名
+var idleTimer=null;
+var lastExport=null;
+
+function $(id){ return document.getElementById(id); }
+
+// ---------- 服务器连接（数据接口，独立部署于同主机 8443 端口）----------
+// online  = 接口可用，数据以服务器为准，保存直接写服务器
+// empty   = 接口可用但服务器尚无数据（首次保存即初始化）
+// offline = 接口不可用（file:// 打开或接口未部署），保存退回生成文件模式
+var conn={mode:'offline', ready:false};
+var connReady=null;
+function apiBase(){
+  // 与页面同主机、独立端口（docker 部署）；协议跟随页面；
+  // file:// 打开时 hostname 为空，fetch 自然失败 → 离线模式
+  return location.protocol+'//'+location.hostname+':8443';
+}
+function initConn(){
+  connReady=(function(){
+    var sig, timer;
+    if(typeof AbortController!=='undefined'){ var c=new AbortController(); sig=c.signal; timer=setTimeout(function(){c.abort();}, 8000); }
+    return fetch(apiBase()+'/', {cache:'no-store', signal:sig})
+      .then(function(r){ if(!r.ok) throw new Error('http '+r.status); return r.json(); })
+      .then(function(j){
+        if(j&&j.ok&&j.data&&j.data.fmt==='H1'){ auth=j.data; conn.mode='online'; }
+        else if(j&&j.ok===false&&j.code==='nodata'){ conn.mode='empty'; }
+        else throw new Error('badpayload');
+      })
+      .catch(function(){ conn.mode='offline'; })
+      .then(function(){ conn.ready=true; refreshAfterSync(); });
+  })();
+}
+function whenConnReady(fn){ if(conn.ready) fn(); else (connReady||Promise.resolve()).then(fn); }
+function refreshAfterSync(){
+  // 管理员会话建立在旧数据上时，重载以最新数据为准（窗口极小）
+  if(session&&session.role==='admin'&&conn.mode==='online'){ location.reload(); return; }
+  if(session&&session.role==='admin') updateSyncUi();
+}
+function updateSyncUi(){
+  var note=$('sync-note'), btn=$('btn-save');
+  if(conn.mode==='online'){ note.classList.add('hidden'); note.textContent=''; btn.textContent='保 存'; }
+  else if(conn.mode==='empty'){ note.classList.remove('hidden'); note.textContent='服务器暂无数据，首次保存后即完成初始化'; btn.textContent='保 存'; }
+  else{ note.classList.remove('hidden'); note.textContent='离线模式：保存将生成页面文件，需手动上传覆盖'; btn.textContent='保存并生成文件'; }
+}
+
+// ---------- 视图切换 ----------
+function showView(name){
+  ['login','user','admin'].forEach(function(v){
+    $('view-'+v).classList.toggle('hidden', v!==name);
+  });
+}
+
+// ---------- 轻提示 ----------
+var toastTimer=null;
+function toast(msg){
+  var t=$('toast');
+  t.textContent=msg;
+  t.classList.add('show');
+  if(toastTimer) clearTimeout(toastTimer);
+  toastTimer=setTimeout(function(){ t.classList.remove('show'); }, 2000);
+}
+
+// ---------- 登录 ----------
+function doLogin(){
+  var u=$('li-user').value.trim(), p=$('li-pass').value;
+  var errEl=$('login-err');
+  errEl.textContent='';
+  if(!u||!p){ errEl.textContent='请输入用户名和密码'; return; }
+  var btn=$('btn-login');
+  btn.disabled=true; btn.textContent='验证中…';
+  setTimeout(function(){
+    var fail=function(){ toast('❌核验未通过，请重试！'); };
+    try{
+      if(u===ADMIN_USER){
+        var Ka=deriveKey(p, auth.sA, auth.it);
+        if(keyVer(Ka)!==auth.aV){ fail(); }
+        else{
+          var payloadA=JSON.parse(decPayload(Ka, auth.e2));
+          enterAdmin(payloadA, p);
+        }
+      }else{
+        var Ku=deriveKey(p, auth.sU, auth.it);
+        if(keyVer(Ku)!==auth.uV){ fail(); }
+        else{
+          var payloadU=JSON.parse(decPayload(Ku, auth.e1));
+          var found=null;
+          for(var i=0;i<payloadU.users.length;i++){
+            if(payloadU.users[i].u===u){ found=payloadU.users[i]; break; }
+          }
+          if(!found){ fail(); }
+          else{
+            $('u-name').textContent=found.n;
+            $('u-plate').textContent=found.p;
+            session={role:'user'};
+            showView('user');
+          }
+        }
+      }
+    }catch(e){
+      fail('数据解密失败，文件可能损坏');
+    }
+    btn.disabled=false; btn.textContent='登 录';
+    $('li-pass').value='';
+  }, 30);
+}
+
+// ---------- 管理员会话 ----------
+function enterAdmin(payload, adminPwd){
+  session={role:'admin'};
+  state={
+    users: payload.users.map(function(x){ return {u:x.u, n:x.n, p:x.p}; }),
+    unifiedPwd: payload.unifiedPwd,
+    adminPwd: adminPwd,
+    sA: auth.sA, sU: auth.sU, sW: auth.sW||'',
+    oldWk: null,
+    dirty: false,
+    savedAt: payload.savedAt||''
+  };
+  $('data-time').textContent='数据更新时间 '+fmtTime(state.savedAt);
+  $('search-box').value='';
+  updateSaveBar();
+  updateSyncUi();
+  renderTable();
+  showView('admin');
+  resetIdle();
+}
+function markDirty(){
+  if(state){ state.dirty=true; updateSaveBar(); }
+}
+function updateSaveBar(){
+  $('save-bar').classList.toggle('show', !!(state&&state.dirty));
+}
+function fmtTime(iso){
+  if(!iso) return '—';
+  var d=new Date(iso);
+  function z(n){ return (n<10?'0':'')+n; }
+  return d.getFullYear()+'-'+z(d.getMonth()+1)+'-'+z(d.getDate())+' '+z(d.getHours())+':'+z(d.getMinutes());
+}
+function resetIdle(){
+  if(!(session&&session.role==='admin')) return;
+  if(idleTimer) clearTimeout(idleTimer);
+  idleTimer=setTimeout(function(){
+    if(session&&session.role==='admin') doLogout('长时间未操作，已自动退出');
+  }, IDLE_MS);
+}
+function doLogout(msg){
+  session=null; state=null; editingKey=null; lastExport=null;
+  if(idleTimer){ clearTimeout(idleTimer); idleTimer=null; }
+  ['li-user','li-pass'].forEach(function(id){ $(id).value=''; });
+  showView('login');
+  if(msg) toast(msg);
+}
+
+// ---------- 用户表格 ----------
+function renderTable(){
+  var q=$('search-box').value.trim().toLowerCase();
+  var list=state.users.filter(function(r){
+    if(!q) return true;
+    return (r.u+' '+r.n+' '+r.p).toLowerCase().indexOf(q)>=0;
+  });
+  var tb=$('tbody');
+  tb.textContent='';
+  list.forEach(function(r){
+    var tr=document.createElement('tr');
+    [r.u, r.n, r.p].forEach(function(val){
+      var td=document.createElement('td');
+      td.textContent=val;
+      tr.appendChild(td);
+    });
+    var tdOp=document.createElement('td');
+    tdOp.className='op';
+    var bE=document.createElement('button');
+    bE.type='button'; bE.className='row-btn'; bE.textContent='编辑';
+    bE.addEventListener('click', function(){ openEdit(r.u); });
+    var bD=document.createElement('button');
+    bD.type='button'; bD.className='row-btn del'; bD.textContent='删除';
+    bD.addEventListener('click', function(){ askDelete(r.u); });
+    tdOp.appendChild(bE); tdOp.appendChild(bD);
+    tr.appendChild(tdOp);
+    tb.appendChild(tr);
+  });
+  $('empty-tip').classList.toggle('hidden', state.users.length>0);
+  $('row-count').textContent=(list.length===state.users.length)
+    ? '共 '+state.users.length+' 人'
+    : '匹配 '+list.length+' / '+state.users.length+' 人';
+}
+
+// ---------- 添加 / 编辑用户 ----------
+function openModal(id){ $(id).classList.add('open'); }
+function closeModal(id){ $(id).classList.remove('open'); }
+function openAdd(){
+  editingKey=null;
+  $('edit-title').textContent='添加用户';
+  $('f-user').value=''; $('f-name').value=''; $('f-plate').value='';
+  $('edit-err').textContent='';
+  openModal('modal-edit');
+  $('f-user').focus();
+}
+function openEdit(u){
+  var r=null;
+  for(var i=0;i<state.users.length;i++){ if(state.users[i].u===u){ r=state.users[i]; break; } }
+  if(!r) return;
+  editingKey=u;
+  $('edit-title').textContent='编辑用户';
+  $('f-user').value=r.u; $('f-name').value=r.n; $('f-plate').value=r.p;
+  $('edit-err').textContent='';
+  openModal('modal-edit');
+}
+function applyEdit(){
+  var u=$('f-user').value.trim(), n=$('f-name').value.trim(), p=$('f-plate').value.trim();
+  var errEl=$('edit-err');
+  errEl.textContent='';
+  if(!u||!n||!p){ errEl.textContent='用户名、姓名、车牌号均不能为空'; return; }
+  if(u===ADMIN_USER){ errEl.textContent='该用户名为管理员保留名'; return; }
+  if(u.length>32||n.length>32||p.length>16){ errEl.textContent='超出长度限制'; return; }
+  var dup=state.users.some(function(r){ return r.u===u && r.u!==editingKey; });
+  if(dup){ errEl.textContent='用户名已存在'; return; }
+  if(editingKey===null){
+    state.users.push({u:u, n:n, p:p});
+  }else{
+    for(var i=0;i<state.users.length;i++){
+      if(state.users[i].u===editingKey){ state.users[i]={u:u, n:n, p:p}; break; }
+    }
+  }
+  markDirty();
+  renderTable();
+  closeModal('modal-edit');
+}
+
+// ---------- 删除（带确认） ----------
+var confirmFn=null;
+function askConfirm(msg, fn){
+  $('confirm-msg').textContent=msg;
+  confirmFn=fn;
+  openModal('modal-confirm');
+}
+
+// ---------- 批量导入 ----------
+function parseImport(text){
+  var lines=text.split(/\r?\n/);
+  var rows=[], bad=0, header=0;
+  for(var i=0;i<lines.length;i++){
+    var line=lines[i].trim();
+    if(!line) continue;
+    if(/用户名|姓名|车牌/.test(line)){ header++; continue; }
+    var parts=line.split(/[\t,，]+/).map(function(s){ return s.trim(); });
+    if(parts.length<3){ bad++; continue; }
+    var u=parts[0], n=parts[1], p=parts.slice(2).join('');
+    if(!u||!n||!p||u.length>32||n.length>32||p.length>16||u===ADMIN_USER){ bad++; continue; }
+    rows.push({u:u, n:n, p:p});
+  }
+  return {rows:rows, bad:bad, header:header};
+}
+function importPreview(){
+  var r=parseImport($('imp-text').value);
+  $('imp-preview').textContent=r.rows.length
+    ? '已识别 '+r.rows.length+' 条有效数据'+(r.bad?'，'+r.bad+' 行无法识别':'')
+    : '';
+}
+function applyImport(){
+  var text=$('imp-text').value;
+  var resEl=$('imp-result');
+  resEl.textContent='';
+  var r=parseImport(text);
+  if(!r.rows.length){ resEl.textContent='未识别到有效数据，请检查格式'; return; }
+  if($('imp-replace').checked) state.users=[];
+  var exist={};
+  state.users.forEach(function(x){ exist[x.u]=1; });
+  var added=0, dup=0;
+  r.rows.forEach(function(row){
+    if(exist[row.u]){ dup++; return; }
+    exist[row.u]=1;
+    state.users.push(row);
+    added++;
+  });
+  markDirty();
+  renderTable();
+  resEl.textContent='导入完成：新增 '+added+' 人，跳过重复 '+dup+' 人'
+    +(r.bad?'，无效 '+r.bad+' 行':'')+(r.header?'，表头 '+r.header+' 行':'');
+}
+
+// ---------- CSV 导出 ----------
+function buildCsv(){
+  var esc=function(s){ return '"'+String(s).replace(/"/g,'""')+'"'; };
+  var lines=['用户名,姓名,车牌号'];
+  state.users.forEach(function(r){ lines.push([r.u,r.n,r.p].map(esc).join(',')); });
+  return '\uFEFF'+lines.join('\r\n');
+}
+function downloadText(filename, text, mime){
+  var blob=new Blob([text], {type:mime||'text/plain'});
+  var url=URL.createObjectURL(blob);
+  var a=document.createElement('a');
+  a.href=url; a.download=filename;
+  document.body.appendChild(a);
+  a.click();
+  setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 800);
+}
+
+// ---------- 密码设置 ----------
+function openSettings(){
+  $('set-unified').value=state.unifiedPwd;
+  $('set-admin-pass').value=''; $('set-admin-pass2').value='';
+  $('set-err').textContent='';
+  openModal('modal-settings');
+}
+function applySettings(){
+  var errEl=$('set-err');
+  errEl.textContent='';
+  var unified=$('set-unified').value.trim();
+  var np=$('set-admin-pass').value, np2=$('set-admin-pass2').value;
+  if(unified!==state.unifiedPwd){
+    if(unified.length<6){ errEl.textContent='统一密码长度至少 6 位'; return; }
+  }
+  if(np){
+    if(np.length<6){ errEl.textContent='管理员密码长度至少 6 位'; return; }
+    if(np!==np2){ errEl.textContent='两次输入的管理员密码不一致'; return; }
+  }
+  if(unified!==state.unifiedPwd){
+    state.unifiedPwd=unified;
+    state.sU=bytesToHex(randBytes(16)); // 换盐，旧密钥作废
+  }
+  if(np){
+    // 凭证切换需要旧凭证作过渡：覆盖前先派生存下（保存成功后清除）
+    state.oldWk=keyVer(deriveKey(state.adminPwd, state.sW, IT));
+    state.adminPwd=np;
+    state.sA=bytesToHex(randBytes(16));
+    state.sW=bytesToHex(randBytes(16)); // 写入凭证随之轮换，旧凭证作废
+  }
+  markDirty();
+  closeModal('modal-settings');
+  toast('设置已更新');
+}
+
+// ---------- 保存：服务器在线直接写入；离线退回生成完整页面 ----------
+function buildAppData(savedAt){
+  var payloadJson=JSON.stringify({v:1, unifiedPwd:state.unifiedPwd, users:state.users, savedAt:savedAt});
+  var Ku=deriveKey(state.unifiedPwd, state.sU, IT);
+  var Ka=deriveKey(state.adminPwd, state.sA, IT);
+  return {
+    fmt:'H1', it:IT,
+    sA:state.sA, sU:state.sU, sW:state.sW,
+    aV:keyVer(Ka), uV:keyVer(Ku),
+    e1:encPayload(Ku, payloadJson),
+    e2:encPayload(Ka, payloadJson)
+  };
+}
+function applySaved(appDataObj, savedAt){
+  auth=appDataObj;
+  state.dirty=false;
+  state.savedAt=savedAt;
+  updateSaveBar();
+  $('data-time').textContent='数据更新时间 '+fmtTime(savedAt);
+}
+function generateFileNow(){
+  var savedAt=new Date().toISOString();
+  var appDataObj=buildAppData(savedAt);
+  var html=serializePage(appDataObj);
+  // 同步当前页面内嵌快照（file:// 兜底可见；服务器在线时以服务器为准）
+  $('app-data').textContent=JSON.stringify(appDataObj);
+  applySaved(appDataObj, savedAt);
+  lastExport={filename:'shdgjy.html', html:html, savedAt:savedAt};
+  return lastExport;
+}
+function postSave(appDataObj, done){
+  // 写入凭证：改密过渡期用旧凭证验证并附带新凭证切换；平时用当前凭证
+  var cur=keyVer(deriveKey(state.adminPwd, state.sW, IT));
+  var wk=state.oldWk||cur;
+  var body={wk:wk, d:appDataObj};
+  if(state.oldWk) body.nw=cur;
+  fetch(apiBase()+'/', {
+    method:'POST',
+    headers:{'Content-Type':'application/json'},
+    body:JSON.stringify(body)
+  }).then(function(r){ return r.json().catch(function(){ throw new Error('badresp'); }).then(function(j){
+    if(r.ok&&j&&j.ok){ state.oldWk=null; done(true); }
+    else done(false, (j&&j.code)||('http'+r.status));
+  }); }).catch(function(){ done(false, 'network'); });
+}
+// 克隆当前文档 → 注入新数据 → 还原为初始干净状态 → 序列化整页
+function serializePage(appDataObj){
+  var root=document.documentElement.cloneNode(true);
+  root.querySelector('#app-data').textContent=JSON.stringify(appDataObj);
+  root.querySelector('#view-login').classList.remove('hidden');
+  root.querySelector('#view-user').classList.add('hidden');
+  root.querySelector('#view-admin').classList.add('hidden');
+  ['#login-err','#u-name','#u-plate','#data-time','#sync-note','#row-count','#edit-err','#imp-preview','#imp-result','#set-err','#exp-info','#confirm-msg'].forEach(function(s){
+    var n=root.querySelector(s); if(n) n.textContent='';
+  });
+  var sn=root.querySelector('#sync-note'); if(sn) sn.classList.add('hidden');
+  var tb=root.querySelector('#tbody'); if(tb) tb.textContent='';
+  var et=root.querySelector('#empty-tip'); if(et) et.classList.add('hidden');
+  var sb=root.querySelector('#save-bar'); if(sb) sb.classList.remove('show');
+  var tt=root.querySelector('#toast'); if(tt) tt.classList.remove('show');
+  var cu=root.querySelector('#clear-user'); if(cu) cu.classList.remove('show');
+  root.querySelectorAll('.modal.open').forEach(function(m){ m.classList.remove('open'); });
+  root.querySelectorAll('input,textarea').forEach(function(n){ n.removeAttribute('value'); });
+  return '<!DOCTYPE html>\n'+root.outerHTML;
+}
+
+// 保存主流程：在线 POST 到服务器；离线生成完整页面文件
+function doSave(btn){
+  var restore=function(){ btn.disabled=false; btn.textContent=(conn.mode==='offline')?'保存并生成文件':'保 存'; };
+  try{
+    if(conn.mode==='offline'){
+      var res=generateFileNow();
+      $('exp-info').textContent='数据更新时间：'+fmtTime(res.savedAt);
+      openModal('modal-export');
+      restore();
+    }else{
+      var savedAt=new Date().toISOString();
+      var appDataObj=buildAppData(savedAt);
+      postSave(appDataObj, function(succ, errCode){
+        if(succ){
+          applySaved(appDataObj, savedAt);
+          toast('已保存到服务器');
+        }else{
+          var msg={denied:'凭证被拒（数据已他人更新？）刷新后重试', network:'网络错误', toobig:'数据超限', writefail:'服务器写入失败'}[errCode]||('错误 '+errCode);
+          toast('保存失败：'+msg);
+        }
+        restore();
+      });
+    }
+  }catch(e){
+    toast('保存失败：'+e.message);
+    restore();
+  }
+}
+
+// ---------- 事件绑定与启动 ----------
+function askDelete(u){
+  var r=null;
+  for(var i=0;i<state.users.length;i++){ if(state.users[i].u===u){ r=state.users[i]; break; } }
+  if(!r) return;
+  askConfirm('确定删除用户 '+r.u+'（'+r.n+'，'+r.p+'）？', function(){
+    state.users=state.users.filter(function(x){ return x.u!==u; });
+    markDirty();
+    renderTable();
+    toast('已删除');
+  });
+}
+function boot(){
+  try{
+    auth=JSON.parse($('app-data').textContent.trim());
+    if(!auth||auth.fmt!=='H1'||!auth.e1||!auth.e2) throw new Error('bad');
+  }catch(e){
+    $('login-err').textContent='数据文件损坏，请重新上传 shdgjy.html';
+    return;
+  }
+  initConn(); // 拉取服务器最新数据（失败则离线模式，用内嵌快照）
+  $('login-form').addEventListener('submit', function(e){ e.preventDefault(); doLogin(); });
+  // 用户名 × 一键清空（输入框内右侧）
+  $('li-user').addEventListener('input', function(){
+    $('clear-user').classList.toggle('show', this.value.length>0);
+  });
+  $('clear-user').addEventListener('click', function(){
+    var inp=$('li-user');
+    inp.value='';
+    this.classList.remove('show');
+    inp.focus();
+  });
+  $('btn-logout-u').addEventListener('click', function(){ doLogout(); });
+  $('btn-logout-a').addEventListener('click', function(){
+    if(state&&state.dirty){
+      askConfirm('有未保存更改，退出后将丢失，确定退出？', function(){ doLogout(); });
+    }else doLogout();
+  });
+  $('search-box').addEventListener('input', renderTable);
+  $('btn-add').addEventListener('click', openAdd);
+  $('btn-edit-ok').addEventListener('click', applyEdit);
+  $('btn-import').addEventListener('click', function(){
+    $('imp-result').textContent=''; $('imp-preview').textContent='';
+    openModal('modal-import');
+    $('imp-text').focus();
+  });
+  $('imp-text').addEventListener('input', importPreview);
+  $('btn-imp-ok').addEventListener('click', applyImport);
+  $('btn-csv').addEventListener('click', function(){
+    if(!state.users.length){ toast('暂无用户可导出'); return; }
+    var d=new Date();
+    function z(n){ return (n<10?'0':'')+n; }
+    var name='shdgjy用户数据-'+d.getFullYear()+z(d.getMonth()+1)+z(d.getDate())+'-'+z(d.getHours())+z(d.getMinutes())+'.csv';
+    downloadText(name, buildCsv(), 'text/csv');
+  });
+  $('btn-set').addEventListener('click', openSettings);
+  $('btn-set-ok').addEventListener('click', applySettings);
+  $('btn-save').addEventListener('click', function(){
+    var btn=$('btn-save');
+    btn.disabled=true; btn.textContent='保存中…';
+    setTimeout(function(){
+      whenConnReady(function(){ doSave(btn); });
+    }, 30);
+  });
+  $('btn-download').addEventListener('click', function(){
+    if(lastExport) downloadText(lastExport.filename, lastExport.html, 'text/html');
+  });
+  $('btn-confirm-ok').addEventListener('click', function(){
+    closeModal('modal-confirm');
+    if(confirmFn){ var fn=confirmFn; confirmFn=null; fn(); }
+  });
+  // 点遮罩或 Esc 关闭弹窗
+  document.querySelectorAll('.modal').forEach(function(m){
+    m.addEventListener('click', function(e){ if(e.target===m) m.classList.remove('open'); });
+  });
+  document.addEventListener('keydown', function(e){
+    if(e.key==='Escape') document.querySelectorAll('.modal.open').forEach(function(m){ m.classList.remove('open'); });
+  });
+  document.querySelectorAll('[data-close]').forEach(function(b){
+    b.addEventListener('click', function(){ b.closest('.modal').classList.remove('open'); });
+  });
+  // 管理员空闲计时
+  ['pointerdown','keydown'].forEach(function(ev){
+    document.addEventListener(ev, function(){ if(session&&session.role==='admin') resetIdle(); }, {passive:true});
+  });
+  // 未保存离开提醒
+  window.addEventListener('beforeunload', function(e){
+    if(session&&session.role==='admin'&&state&&state.dirty){ e.preventDefault(); e.returnValue=''; }
+  });
+  showView('login');
+}
+boot();
+
+/* 自动化测试钩子（只暴露只读状态与核心函数，不绕过登录验证） */
+window.__t={
+  version: APP_VERSION,
+  conn: function(){ return {mode:conn.mode, ready:conn.ready}; },
+  parseImport: parseImport,
+  buildCsv: buildCsv,
+  state: function(){ return (session&&session.role==='admin') ? {count:state.users.length, dirty:state.dirty, savedAt:state.savedAt} : null; },
+  generateFile: function(){ return (session&&session.role==='admin') ? generateFileNow() : null; }
+};
+})();
+</script>
+</body>
+</html>
